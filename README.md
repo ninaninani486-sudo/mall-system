@@ -1,44 +1,74 @@
-# 分布式延迟任务调度平台
+# mall-system 商城系统
 
-## 项目简介
-
-基于Spring Boot + Redis + RabbitMQ实现的分布式延迟任务调度系统，支持任务创建、执行、重试、取消等功能。
+Spring Boot + Vue3 前后端分离商城系统，支持用户登录、商品浏览、购物车、订单管理、余额/微信/支付宝支付（模拟）、RabbitMQ 延迟队列自动取消超时订单。
 
 ## 技术栈
 
+### 后端
+
 - **Spring Boot 2.7.5** - 核心框架
-- **MyBatis Plus 3.5.2** - ORM框架
+- **MyBatis Plus 3.5.2** - ORM 框架
 - **MySQL 8.0** - 数据库
 - **Redis** - 缓存 + 分布式锁
-- **RabbitMQ** - 消息队列
-- **Redisson** - Redis分布式锁客户端
-- **Knife4j** - API文档
+- **RabbitMQ** - 消息队列（延迟任务）
+- **Redisson** - Redis 分布式锁客户端
+- **SpringDoc OpenAPI** - API 文档
+- **JWT** - 用户认证
+- **Druid** - 数据库连接池
+
+### 前端
+
+- **Vue 3** - 前端框架
+- **Element Plus** - UI 组件库
+- **Pinia** - 状态管理
+- **Vue Router** - 路由管理
+- **Axios** - HTTP 请求
+- **Vite** - 构建工具
 
 ## 核心功能
 
-1. **任务管理** - 创建、查询、取消延迟任务
-2. **分布式锁** - 使用Redisson实现分布式锁，防止任务重复执行
-3. **消息队列** - 使用RabbitMQ实现异步任务处理
-4. **任务重试** - 支持自动重试机制
-5. **执行日志** - 记录任务执行过程和结果
+| 模块 | 功能 |
+|------|------|
+| **用户** | 注册、登录、JWT 鉴权 |
+| **商品** | 商品列表、分类筛选、关键词搜索、商品详情 |
+| **购物车** | 添加/删除商品、修改数量、购物车列表 |
+| **订单** | 创建订单、订单列表、订单详情、取消订单 |
+| **支付** | 余额支付、微信支付（模拟）、支付宝支付（模拟） |
+| **账户** | 余额查询、充值、交易流水 |
+| **延迟任务** | 超时订单自动取消、任务重试、执行日志 |
 
 ## 项目结构
 
 ```
-delay-task-platform/
+mall-system/
 ├── src/main/java/com/delaytask/
-│   ├── config/          # 配置类
-│   ├── controller/      # 控制器
-│   ├── entity/          # 实体类
-│   ├── mapper/          # 数据访问层
-│   ├── mq/             # RabbitMQ相关
-│   ├── redis/          # Redis相关
-│   ├── service/        # 业务逻辑层
-│   └── util/           # 工具类
-├── src/main/resources/
-│   └── application.yml # 配置文件
-├── docs/               # 文档
-└── deploy/             # 部署脚本
+│   ├── config/               # 配置类（Redis、RabbitMQ、MyBatis-Plus等）
+│   ├── controller/           # 控制器
+│   │   ├── UserController        # 用户接口
+│   │   ├── ProductController     # 商品接口
+│   │   ├── CartController        # 购物车接口
+│   │   ├── OrderController       # 订单接口
+│   │   ├── PaymentController     # 支付接口
+│   │   ├── AccountController     # 账户接口
+│   │   ├── TaskController        # 延迟任务接口
+│   │   └── ImageProxyController  # 图片代理
+│   ├── dto/                  # 数据传输对象
+│   ├── entity/               # 实体类
+│   ├── mapper/               # MyBatis-Plus Mapper
+│   ├── mq/                   # RabbitMQ 延迟队列
+│   ├── redis/                # Redis/Redisson 操作
+│   ├── service/              # 业务逻辑层
+│   └── util/                 # 工具类
+├── frontend/                 # Vue 3 前端
+│   └── src/
+│       ├── api/              # API 请求
+│       ├── views/            # 页面
+│       ├── router/           # 路由
+│       ├── store/            # 状态管理
+│       └── components/       # 公共组件
+├── docs/                     # SQL 脚本
+├── deploy/                   # Docker 部署
+└── stress_test.py            # 压测脚本
 ```
 
 ## 快速开始
@@ -49,119 +79,110 @@ delay-task-platform/
 - MySQL 8.0+
 - Redis 7.0+
 - RabbitMQ 3.9+
+- Node.js 16+
 
 ### 2. 数据库初始化
 
 ```bash
-mysql -u root -p < docs/schema.sql
+mysql -u root -p < docs/mall_schema.sql
 ```
 
-### 3. 启动应用
+### 3. 启动后端
 
 ```bash
-mvn clean package
+mvn clean package -DskipTests
 java -jar target/delay-task-platform-1.0.0.jar
 ```
 
-### 4. Docker部署
+### 4. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 5. Docker 部署
 
 ```bash
 cd deploy
 docker-compose up -d
 ```
 
-## API接口
+## API 接口
 
-### 创建延迟任务
+### 用户
 
-```bash
-POST /api/task/create
-参数:
-  - taskName: 任务名称
-  - taskType: 任务类型 (ORDER_TIMEOUT, SMS_REMINDER, DATA_CLEANUP)
-  - taskParam: 任务参数
-  - executeTime: 执行时间 (yyyy-MM-dd HH:mm:ss)
+```
+POST  /api/user/login      # 登录
+POST  /api/user/register   # 注册
+GET   /api/user/info       # 用户信息
 ```
 
-### 取消任务
+### 商品
 
-```bash
-POST /api/task/cancel/{taskId}
+```
+GET   /api/product/list        # 商品列表（支持分页、关键词、分类）
+GET   /api/product/detail/{id} # 商品详情
 ```
 
-### 查询任务列表
+### 购物车
 
-```bash
-GET /api/task/list?page=1&size=10
+```
+GET   /api/cart/list        # 购物车列表
+POST  /api/cart/add         # 添加商品
+POST  /api/cart/update      # 修改数量
+POST  /api/cart/remove      # 移除商品
 ```
 
-### 查询任务日志
+### 订单
 
-```bash
-GET /api/task/log/{taskId}
+```
+POST  /api/order/create           # 创建订单
+GET   /api/order/detail/{orderNo} # 订单详情
+GET   /api/order/list             # 订单列表
+POST  /api/order/cancel/{orderNo} # 取消订单
 ```
 
-## Linux运维
+### 支付
 
-### 脚本使用
+```
+POST  /api/payment/pay           # 支付
+POST  /api/payment/wechat/notify # 微信支付回调
+POST  /api/payment/alipay/notify # 支付宝支付回调
+```
+
+### 账户
+
+```
+GET   /api/account/balance       # 查询余额
+POST  /api/account/recharge      # 充值
+GET   /api/account/transactions  # 交易流水
+```
+
+### 延迟任务
+
+```
+POST  /api/task/create          # 创建延迟任务
+POST  /api/task/cancel/{taskId} # 取消任务
+GET   /api/task/list            # 任务列表
+GET   /api/task/log/{taskId}    # 任务日志
+```
+
+## Docker 部署
 
 ```bash
-# 赋予执行权限
+cd deploy
+docker-compose up -d
+```
+
+### 脚本管理
+
+```bash
 chmod +x deploy/app.sh
-
-# 启动应用
-./deploy/app.sh start
-
-# 停止应用
-./deploy/app.sh stop
-
-# 查看状态
-./deploy/app.sh status
-
-# 查看日志
-./deploy/app.sh logs
-
-# 健康检查
-./deploy/app.sh health
-
-# 检查环境
-./deploy/app.sh check
+./deploy/app.sh start   # 启动
+./deploy/app.sh stop    # 停止
+./deploy/app.sh status  # 状态
+./deploy/app.sh logs    # 日志
+./deploy/app.sh health  # 健康检查
 ```
-
-### 常用Linux命令
-
-```bash
-# 查看端口占用
-netstat -tlnp | grep 8080
-
-# 查看进程
-ps -ef | grep delay-task
-
-# 查看日志
-tail -f /opt/logs/delay-task-platform/startup.log
-
-# 查看Redis状态
-redis-cli info memory
-
-# 查看RabbitMQ队列
-rabbitmqctl list_queues
-```
-
-## 简历描述建议
-
-在简历中可以这样描述这个项目：
-
-> **分布式延迟任务调度平台**
-> - 基于Spring Boot构建的分布式任务调度系统，支持延迟任务的创建、执行、重试和取消
-> - 使用Redis实现分布式锁，确保任务在分布式环境下的幂等性，避免重复执行
-> - 集成RabbitMQ实现异步消息处理，通过死信队列实现任务重试机制
-> - 编写Shell脚本实现应用的自动化部署和运维，包括环境检查、健康监控等功能
-> - 使用Docker Compose实现一键部署，包含MySQL、Redis、RabbitMQ等中间件
-
-## 扩展功能
-
-1. **任务优先级** - 支持不同优先级的任务
-2. **任务依赖** - 支持任务之间的依赖关系
-3. **任务分片** - 支持大任务的分片处理
-4. **监控面板** - 集成Prometheus + Grafana监控
-5. **告警通知** - 任务失败时发送告警通知
