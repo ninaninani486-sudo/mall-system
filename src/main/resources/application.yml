@@ -69,3 +69,5 @@ logging:
   level:
     com.delaytask: debug
     org.springframework: info
+  file:
+    path: logs

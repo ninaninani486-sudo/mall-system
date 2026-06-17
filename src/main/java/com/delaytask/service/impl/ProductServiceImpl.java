@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.delaytask.entity.Product;
 import com.delaytask.mapper.ProductMapper;
 import com.delaytask.service.ProductService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -30,7 +32,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product>
     }
 
     @Override
+    @Cacheable(value = "product:detail", key = "#productId", unless = "#result == null")
     public Product getProductDetail(Long productId) {
         return baseMapper.selectById(productId);
+    }
+
+    @Override
+    @CacheEvict(value = "product:detail", key = "#product.id")
+    public boolean updateById(Product product) {
+        return super.updateById(product);
     }
 }
