@@ -12,23 +12,24 @@
         </div>
         <el-table :data="products" style="width: 100%" v-loading="productLoading" stripe>
           <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column prop="name" label="商品名称" min-width="180" />
-          <el-table-column prop="category" label="分类" width="100" />
-          <el-table-column label="价格" width="120">
+          <el-table-column prop="name" label="商品名称" min-width="160" />
+          <el-table-column prop="category" label="分类" width="90" />
+          <el-table-column label="价格" width="100">
             <template #default="{ row }">¥{{ row.price }}</template>
           </el-table-column>
-          <el-table-column prop="stock" label="库存" width="80" />
-          <el-table-column prop="sales" label="销量" width="80" />
-          <el-table-column label="状态" width="100">
+          <el-table-column prop="stock" label="库存" width="70" />
+          <el-table-column prop="sales" label="销量" width="70" />
+          <el-table-column label="状态" width="80">
             <template #default="{ row }">
               <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain" round size="small">
                 {{ row.status === 1 ? '上架' : '下架' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleProduct(row)">
+              <el-button size="small" type="primary" link @click="editProduct(row)">编辑</el-button>
+              <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" link @click="toggleProduct(row)">
                 {{ row.status === 1 ? '下架' : '上架' }}
               </el-button>
             </template>
@@ -50,21 +51,21 @@
         </div>
         <el-table :data="orders" style="width: 100%" v-loading="orderLoading" stripe>
           <el-table-column prop="orderNo" label="订单号" min-width="200" />
-          <el-table-column label="金额" width="120">
+          <el-table-column label="金额" width="100">
             <template #default="{ row }">¥{{ row.payAmount }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="100">
+          <el-table-column label="状态" width="90">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)" effect="dark" round size="small">{{ getStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="支付方式" width="120">
+          <el-table-column label="支付方式" width="100">
             <template #default="{ row }">{{ row.payType || '-' }}</template>
           </el-table-column>
           <el-table-column label="下单时间" min-width="160">
             <template #default="{ row }">{{ row.createTime }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right">
+          <el-table-column label="操作" width="80" fixed="right">
             <template #default="{ row }">
               <el-button size="small" type="primary" link @click="viewOrder(row)">详情</el-button>
             </template>
@@ -75,6 +76,37 @@
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="editVisible" title="编辑商品" width="450px">
+      <el-form :model="editForm" label-width="80px" v-if="editForm">
+        <el-form-item label="商品名称">
+          <el-input v-model="editForm.name" />
+        </el-form-item>
+        <el-form-item label="分类">
+          <el-select v-model="editForm.category" style="width:100%">
+            <el-option label="手机" value="Phone" />
+            <el-option label="电脑" value="Computer" />
+            <el-option label="平板" value="Tablet" />
+            <el-option label="配件" value="Accessory" />
+            <el-option label="手表" value="Watch" />
+            <el-option label="游戏" value="Gaming" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="价格">
+          <el-input-number v-model="editForm.price" :precision="2" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="库存">
+          <el-input-number v-model="editForm.stock" :min="0" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="editForm.description" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveProduct" :loading="saveLoading">保存</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="detailVisible" title="订单详情" width="600px">
       <div v-if="currentOrder" class="order-detail">
@@ -97,8 +129,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import api, { proxyImage } from '../api'
+import { ElMessage } from 'element-plus'
 
 const activeTab = ref('products')
 
@@ -116,8 +149,13 @@ const orderPage = ref(1)
 const orderSize = ref(10)
 const orderTotal = ref(0)
 const orderLoading = ref(false)
+
 const detailVisible = ref(false)
 const currentOrder = ref(null)
+
+const editVisible = ref(false)
+const editForm = ref(null)
+const saveLoading = ref(false)
 
 const loadProducts = async () => {
   productLoading.value = true
@@ -135,6 +173,23 @@ const loadProducts = async () => {
 const toggleProduct = async (row) => {
   await api.post(`/admin/product/${row.id}/toggle`)
   loadProducts()
+}
+
+const editProduct = (row) => {
+  editForm.value = { ...row }
+  editVisible.value = true
+}
+
+const saveProduct = async () => {
+  saveLoading.value = true
+  try {
+    await api.post('/admin/product/update', editForm.value)
+    ElMessage.success('保存成功')
+    editVisible.value = false
+    loadProducts()
+  } finally {
+    saveLoading.value = false
+  }
 }
 
 const loadOrders = async () => {

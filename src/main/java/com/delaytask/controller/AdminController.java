@@ -17,7 +17,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -33,12 +35,21 @@ public class AdminController {
     @Autowired
     private OrderItemMapper orderItemMapper;
 
+    private void checkAdmin(HttpServletRequest request) {
+        String username = (String) request.getAttribute("username");
+        if (!"admin".equals(username)) {
+            throw new RuntimeException("无权访问管理后台");
+        }
+    }
+
     @GetMapping("/product/list")
     @Operation(summary = "商品管理列表（含已下架）")
     public Result<?> listProducts(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword) {
+        checkAdmin(request);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Product::getName, keyword);
@@ -50,7 +61,8 @@ public class AdminController {
 
     @PostMapping("/product/{id}/toggle")
     @Operation(summary = "上架/下架商品")
-    public Result<?> toggleProduct(@PathVariable Long id) {
+    public Result<?> toggleProduct(HttpServletRequest request, @PathVariable Long id) {
+        checkAdmin(request);
         Product product = productMapper.selectById(id);
         if (product == null) {
             return Result.error(404, "商品不存在");
@@ -61,13 +73,43 @@ public class AdminController {
         return Result.success(newStatus == 1 ? "商品已上架" : "商品已下架");
     }
 
+    @PostMapping("/product/update")
+    @Operation(summary = "编辑商品信息（库存/价格/名称/分类）")
+    public Result<?> updateProduct(HttpServletRequest request, @RequestBody Map<String, Object> params) {
+        checkAdmin(request);
+        Long id = Long.valueOf(params.get("id").toString());
+        Product product = productMapper.selectById(id);
+        if (product == null) {
+            return Result.error(404, "商品不存在");
+        }
+        if (params.containsKey("name")) {
+            product.setName((String) params.get("name"));
+        }
+        if (params.containsKey("category")) {
+            product.setCategory((String) params.get("category"));
+        }
+        if (params.containsKey("price")) {
+            product.setPrice(new BigDecimal(params.get("price").toString()));
+        }
+        if (params.containsKey("stock")) {
+            product.setStock(Integer.valueOf(params.get("stock").toString()));
+        }
+        if (params.containsKey("description")) {
+            product.setDescription((String) params.get("description"));
+        }
+        productMapper.updateById(product);
+        return Result.success("商品信息已更新");
+    }
+
     @GetMapping("/order/list")
     @Operation(summary = "全部订单列表")
     public Result<?> listOrders(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) String status) {
+        checkAdmin(request);
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Order::getDeleted, 0);
         if (StringUtils.hasText(orderNo)) {
