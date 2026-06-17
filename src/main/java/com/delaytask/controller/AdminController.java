@@ -9,6 +9,7 @@ import com.delaytask.entity.Product;
 import com.delaytask.mapper.OrderItemMapper;
 import com.delaytask.mapper.OrderMapper;
 import com.delaytask.mapper.ProductMapper;
+import com.delaytask.redis.RedisCache;
 import com.delaytask.util.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,9 @@ public class AdminController {
 
     @Autowired
     private OrderItemMapper orderItemMapper;
+
+    @Autowired
+    private RedisCache redisCache;
 
     private void checkAdmin(HttpServletRequest request) {
         String username = (String) request.getAttribute("username");
@@ -70,6 +74,7 @@ public class AdminController {
         int newStatus = product.getStatus() == 1 ? 0 : 1;
         product.setStatus(newStatus);
         productMapper.updateById(product);
+        redisCache.delete("product:detail:" + id);
         return Result.success(newStatus == 1 ? "商品已上架" : "商品已下架");
     }
 
@@ -98,6 +103,7 @@ public class AdminController {
             product.setDescription((String) params.get("description"));
         }
         productMapper.updateById(product);
+        redisCache.delete("product:detail:" + id);
         return Result.success("商品信息已更新");
     }
 
