@@ -5,7 +5,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        org.redisson.spring.starter.RedissonAutoConfiguration.class
+})
 @MapperScan("com.delaytask.mapper")
 @EnableScheduling
 public class DelayTaskApplication {
