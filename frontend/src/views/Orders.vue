@@ -4,6 +4,9 @@
       <h2>我的订单</h2>
       <p>管理你的所有订单</p>
     </div>
+    <div class="toolbar" v-if="orders.length > 0">
+      <el-input v-model="keyword" placeholder="搜索订单号..." clearable @clear="searchOrders" @keyup.enter="searchOrders" class="search-input" prefix-icon="Search" />
+    </div>
     <div class="order-list">
       <div v-for="order in orders" :key="order.id" class="order-card">
         <div class="order-header">
@@ -36,6 +39,9 @@
         </div>
       </div>
     </div>
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination v-model:current-page="page" :page-size="size" :total="total" layout="prev, pager, next" @current-change="loadOrders" />
+    </div>
     <el-empty v-if="orders.length === 0" description="暂无订单">
       <el-button type="primary" @click="$router.push('/products')">去购物</el-button>
     </el-empty>
@@ -48,10 +54,22 @@ import api, { proxyImage } from '../api'
 import { ElMessage } from 'element-plus'
 
 const orders = ref([])
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
+const keyword = ref('')
 
 const loadOrders = async () => {
-  const res = await api.get('/order/list')
-  orders.value = res.data
+  const params = { page: page.value, size: size.value }
+  if (keyword.value) params.keyword = keyword.value
+  const res = await api.get('/order/page', { params })
+  orders.value = res.data.records
+  total.value = res.data.total
+}
+
+const searchOrders = () => {
+  page.value = 1
+  loadOrders()
 }
 
 const cancelOrder = async (orderNo) => {
@@ -86,6 +104,12 @@ onMounted(() => loadOrders())
   color: #909399;
   font-size: 14px;
   margin-top: 4px;
+}
+.toolbar {
+  margin-bottom: 16px;
+}
+.search-input {
+  max-width: 320px;
 }
 .order-list {
   display: flex;
@@ -196,5 +220,10 @@ onMounted(() => loadOrders())
 .pay-btn {
   background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
+}
+.pagination-wrapper {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
 }
 </style>

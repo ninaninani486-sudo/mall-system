@@ -1,5 +1,7 @@
 package com.delaytask.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.delaytask.dto.OrderDTO;
 import com.delaytask.entity.Order;
 import com.delaytask.service.OrderService;
@@ -49,6 +51,18 @@ public class OrderController {
         Long userId = (Long) request.getAttribute("userId");
         List<Order> orders = orderService.getUserOrders(userId);
         return Result.success(orders);
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "我的订单列表（分页+搜索）")
+    public Result<?> getUserOrdersPage(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        Long userId = (Long) request.getAttribute("userId");
+        IPage<Order> orderPage = orderService.getUserOrdersPage(userId, new Page<>(page, size), keyword);
+        return Result.success(orderPage);
     }
 
     @PostMapping("/cancel/{orderNo}")

@@ -1,6 +1,8 @@
 package com.delaytask.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.delaytask.dto.OrderDTO;
 import com.delaytask.dto.OrderItemDTO;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -122,6 +125,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order>
             order.setItems(items);
         }
         return orders;
+    }
+
+    @Override
+    public IPage<Order> getUserOrdersPage(Long userId, Page<Order> page, String keyword) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Order::getUserId, userId).eq(Order::getDeleted, 0);
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(Order::getOrderNo, keyword);
+        }
+        wrapper.orderByDesc(Order::getCreateTime);
+        IPage<Order> orderPage = orderMapper.selectPage(page, wrapper);
+        for (Order order : orderPage.getRecords()) {
+            List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
+            order.setItems(items);
+        }
+        return orderPage;
     }
 
     @Override
