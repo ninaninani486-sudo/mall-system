@@ -1,0 +1,9 @@
+package com.delaytask.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.delaytask.entity.AccountTransaction;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface AccountTransactionMapper extends BaseMapper<AccountTransaction> {
+}
